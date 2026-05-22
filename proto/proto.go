@@ -277,20 +277,24 @@ func decodeDateNum(category uint16, num uint32) (time.Time, bool) {
 		day = int(num % 100)
 	}
 
-	// if year < 1992 || year > time.Now().Year()+1 {
-	// 	return time.Time{}, false
-	// }
-	// if month < 1 || month > 12 || day < 1 || day > 31 {
-	// 	return time.Time{}, false
-	// }
-	// if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
-	// 	return time.Time{}, false
-	// }
+	// 校验合法性：非法字节（错位/尾部 UpCount-DownCount 等）返回 false。
+	// 指数与个股解析器依赖此 false 来探测每条 K 线尾部的上涨/下跌家数字段；
+	// 校验若恒真会导致从第 1 条起整体错位、产生垃圾 bar。
+	// 下界取 1990（沪市指数 1990-12 起步），避免误杀最早的历史数据。
+	if year < 1990 || year > time.Now().Year()+1 {
+		return time.Time{}, false
+	}
+	if month < 1 || month > 12 || day < 1 || day > 31 {
+		return time.Time{}, false
+	}
+	if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
+		return time.Time{}, false
+	}
 
 	t := time.Date(year, time.Month(month), day, hour, minute, 0, 0, time.Local)
-	// if t.Year() != year || int(t.Month()) != month || t.Day() != day || t.Hour() != hour || t.Minute() != minute {
-	// return time.Time{}, false
-	// }
+	if t.Year() != year || int(t.Month()) != month || t.Day() != day || t.Hour() != hour || t.Minute() != minute {
+		return time.Time{}, false
+	}
 
 	return t, true
 }
