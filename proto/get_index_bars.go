@@ -123,13 +123,13 @@ func (obj *GetIndexBars) ParseResponse(header *RespHeader, data []byte) error {
 			DateTime: dateTime.Format("2006-01-02 15:04:05"),
 		}
 
+		// 指数 K 线每条记录尾部固定带上涨/下跌家数（各 2 字节），无条件消费。
+		// 不能靠「下一段是否像合法日期」来猜：成分股少的指数（如沪深300）家数值小，
+		// 其字节恰好能解成貌似合法的旧日期，会导致从下一根起整体错位、产生垃圾。
 		if pos+4 <= len(data) {
-			tryDateNum := binary.LittleEndian.Uint32(data[pos : pos+4])
-			if _, ok := decodeDateNum(obj.request.Category, tryDateNum); !ok {
-				bar.UpCount = binary.LittleEndian.Uint16(data[pos : pos+2])
-				bar.DownCount = binary.LittleEndian.Uint16(data[pos+2 : pos+4])
-				pos += 4
-			}
+			bar.UpCount = binary.LittleEndian.Uint16(data[pos : pos+2])
+			bar.DownCount = binary.LittleEndian.Uint16(data[pos+2 : pos+4])
+			pos += 4
 		}
 
 		obj.reply.List = append(obj.reply.List, bar)
